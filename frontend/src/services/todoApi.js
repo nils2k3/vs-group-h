@@ -1,6 +1,14 @@
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const rawApiUrl = import.meta.env.VITE_API_URL
+const fallbackApiUrl = 'http://localhost:8080'
+
+const shouldUseLocalhost =
+  rawApiUrl && rawApiUrl.includes('backend') &&
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+
+const API_URL = shouldUseLocalhost ? fallbackApiUrl : (rawApiUrl || fallbackApiUrl)
 
 // Axios instance mit Standard-Config
 const apiClient = axios.create({

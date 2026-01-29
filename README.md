@@ -1,96 +1,167 @@
-# ToDo Application Frontend - Gruppe H
+# ToDo Application - Gruppe H (Full Stack)
 **Nils Richter, Marc Walter**
 
-Vue 3 Frontend für die ToDo-Verwaltungsanwendung von Gruppe K. Entwickelt für Verteilte Systeme, HS Esslingen.
+Vue 3 Frontend + Spring Boot Backend (Gruppe K). Vollständige ToDo-Verwaltungsanwendung für Verteilte Systeme, HS Esslingen.
 
 ## 🎯 Features
 
 - **Vue 3 Frontend**: Modernes SPA mit Composition API
-- **API-Kompatibel**: Entwickelt für Gruppe K's Spring Boot Backend
-- **Docker Support**: Containerisiertes Frontend-Setup
+- **Spring Boot Backend**: Gruppe K's Backend mit MapStruct DTOs
+- **PostgreSQL Database**: Persistent Storage
+- **Docker Support**: Vollständiger Stack containerisiert
 - **Hot Reload**: Entwicklungsumgebung mit Vite
-- **Responsive Design**: Funktioniert auf allen Geräten
+- **Health Checks**: Alle Services mit Healthchecks
+- **API Documentation**: Swagger UI für Backend
 
 ## 📋 Voraussetzungen
 
-- **Gruppe K's Backend**: https://github.com/vs-ws25-gruppe-k/vs-backend-group-k
-- Docker & Docker Compose (für containerisiertes Setup)
-- (Optional) Node.js 20+ für lokale Entwicklung ohne Docker
+- Docker & Docker Compose
+- (Optional) Node.js 20+ für lokale Frontend-Entwicklung
+- (Optional) Maven & Java 21 für lokale Backend-Entwicklung
 
-## 🚀 Schnellstart
+## 🚀 Schnellstart (All-in-One)
 
-### Schritt 1: Gruppe K's Backend starten
-
-```bash
-# Gruppe K's Repository klonen
-git clone https://github.com/vs-ws25-gruppe-k/vs-backend-group-k.git
-cd vs-backend-group-k
-
-# CORS konfigurieren: ALLOWED_ORIGIN=* in .env oder docker-compose.yml setzen
-
-# Backend mit Docker starten (läuft auf Port 8080)
-docker-compose up -d
-```
-
-### Schritt 2: Frontend starten
-
-**Option A: Mit Docker**
 ```bash
 cd "C:\Users\nilsr\Documents\H Esslingen\Semester 5\VS\vs-group-h"
+
+# Stack mit allen Services starten
 docker-compose -f docker-compose.dev.yml up -d
 ```
 
-**Option B: Lokal (für Entwicklung)**
-```bash
-cd frontend
-npm install
-npm run dev
-```
+Das startet automatisch:
+- ✅ **PostgreSQL** (Port 5432)
+- ✅ **Spring Boot Backend** (Port 8080)
+- ✅ **Adminer** (Port 7777) - Database GUI
+- ✅ **Vue Frontend** (Port 3000)
 
 ### Zugriff
 
 - **Frontend**: http://localhost:3000
+- **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8080/todos
 - **Swagger UI**: http://localhost:8080/swagger-ui.html
-- **Adminer (DB)**: http://localhost:7777 (von Gruppe K's Backend)
+- **Adminer (DB)**: http://localhost:7777
 
-> **Wichtig**: CORS muss im Backend konfiguriert sein: `ALLOWED_ORIGIN=*` oder `ALLOWED_ORIGIN=http://localhost:3000`
+**Database Credentials:**
+- Host: `localhost`
+- Port: `5432`
+- Database: `tododb`
+- User: `todouser`
+- Password: `secret`
+
+## 🛑 Stack Stoppen
+
+```bash
+docker-compose -f docker-compose.dev.yml down
+```
 
 ## 📁 Projektstruktur
 
 ```
 vs-group-h/
-├── frontend/               # Vue 3 Frontend
+├── frontend/                    # Vue 3 Frontend
 │   ├── src/
-│   │   ├── App.vue        # Hauptkomponente
-│   │   ├── main.js        # Entry Point
-│   │   ├── components/    # Vue Komponenten
+│   │   ├── App.vue             # Hauptkomponente
+│   │   ├── main.js             # Entry Point
+│   │   ├── components/         # Vue Komponenten
 │   │   │   ├── TodoForm.vue
 │   │   │   └── TodoList.vue
 │   │   └── services/
-│   │       └── todoApi.js # Axios API Client
+│   │       └── todoApi.js      # Axios API Client
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.js
 │   ├── Dockerfile
 │   └── README.md
-├── docker-compose.dev.yml # Docker Setup für Frontend
-├── API-SPEC.md           # REST API Dokumentation (Gruppe K)
-├── INTEGRATION-GUIDE.md  # Setup-Anleitung mit Gruppe K Backend
-└── README.md             # Diese Datei
+│
+├── backend/                     # [COPY] Gruppe K Spring Boot Backend
+│   └── todoapp/
+│       ├── src/
+│       │   ├── main/java/de/vs_group4/todoapp/
+│       │   │   ├── controllers/    # REST Endpoints
+│       │   │   ├── services/       # Business Logic
+│       │   │   ├── repositories/   # Data Access
+│       │   │   ├── models/         # Entities
+│       │   │   ├── dtos/           # Request/Response DTOs
+│       │   │   ├── mappers/        # DTO Mapping
+│       │   │   └── config/         # Spring Config
+│       │   └── resources/
+│       ├── pom.xml
+│       ├── Dockerfile
+│       └── mvnw
+│
+├── k8s/                         # Kubernetes Manifeste
+│   ├── frontend-deployment.yaml
+│   ├── frontend-service.yaml
+│   └── README.md
+│
+├── .github/workflows/           # GitHub Actions CI/CD
+│   └── build.yml
+│
+├── docker-compose.dev.yml       # Full Stack (Frontend + Backend + DB)
+├── .env.dev                     # Environment Variables für Docker
+├── .env.example                 # Beispiel .env für Frontend
+├── API-SPEC.md                  # REST API Dokumentation
+├── INTEGRATION-GUIDE.md         # Integration Guide
+├── CI-CD.md                     # CI/CD Pipeline Dokumentation
+├── DOCKER-SETUP.md              # Docker Setup Guide
+└── README.md                    # Diese Datei
 ```
 
-> **Hinweis**: Das Backend wird von Gruppe K bereitgestellt. Siehe deren Repository für Backend-Code.
+## 🔌 Architecture
+
+```
+┌─────────────┐
+│  Frontend   │  Vue 3 + Vite
+│  :3000      │  Nginx (Prod)
+└──────┬──────┘
+       │ HTTP
+       │ VITE_API_URL=http://backend:8080
+       │
+┌──────▼──────────┐
+│  Backend        │  Spring Boot 3.2.0
+│  :8080          │  Java 21
+│  /todos         │  MapStruct DTOs
+└──────┬──────────┘
+       │ JDBC
+       │
+┌──────▼──────────┐
+│  PostgreSQL     │  postgres:18.1
+│  :5432          │  tododb
+│  todouser       │
+└─────────────────┘
+```
+
+## 🔧 Lokale Entwicklung (ohne Docker)
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+# http://localhost:5173
+```
+
+### Backend
+```bash
+cd backend/todoapp
+mvn clean install
+mvn spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=dev"
+# http://localhost:8080
+```
+
+Benötigt laufenden PostgreSQL:
+```bash
+docker run --name postgres -e POSTGRES_PASSWORD=secret -p 5432:5432 postgres:18.1-trixie
+```
 
 ## 🔌 API-Kompatibilität
 
-Dieses Frontend ist entwickelt für:
-
-✅ **Gruppe K Backend**
+Dieses Backend ist von **Gruppe K** (mit [COPY] Markierung):
 - Repository: https://github.com/vs-ws25-gruppe-k/vs-backend-group-k
-- Spring Boot 3.2.0 mit Java 21
+- Spring Boot 4.0.1 mit Java 21
 - PostgreSQL 18+ Datenbank
-- 100% API-kompatibel
+- 100% API-kompatibel mit Frontend
 
 ### API-Spezifikation:
 
@@ -110,6 +181,17 @@ DELETE /todos/{id}     # ToDo löschen
   "completed": false
 }
 ```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "title": "Aufgabe erledigen",
+  "description": "Detaillierte Beschreibung",
+  "completed": false
+}
+```
+
 
 **Response Body:**
 ```json

@@ -1,10 +1,73 @@
 version: '3.8'
 
-# Frontend-only Docker Compose
-# Backend wird von Gruppe K bereitgestellt: https://github.com/vs-ws25-gruppe-k/vs-backend-group-k
-# Starte zuerst Gruppe K's Backend, dann dieses Frontend
+# Full Stack Docker Compose
+# Frontend + Backend (Gruppe K) + PostgreSQL + Adminer
 
 services:
+  # PostgreSQL Database
+  postgres:
+    container_name: todo-postgres-dev
+    image: postgres:18.1-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tododb}
+      POSTGRES_USER: ${POSTGRES_USER:-todouser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data_18:/var/lib/postgresql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-todouser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot Backend (Gruppe K)
+  backend:
+    build:
+      context: ./backend/todoapp
+      dockerfile: Dockerfile
+    container_name: todo-backend-dev
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-tododb}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-todouser}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      ALLOWED_ORIGIN: http://localhost:3000
+      PORT: 8080
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  # Adminer - Database GUI
+  adminer:
+    image: adminer
+    container_name: todo-adminer-dev
+    restart: unless-stopped
+    ports:
+      - "7777:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
   # Vue Frontend
   frontend:
     build:
@@ -13,8 +76,7 @@ services:
     container_name: todo-frontend-dev
     restart: unless-stopped
     environment:
-      # Backend URL - muss auf Gruppe K's Backend zeigen
-      VITE_API_URL: http://localhost:8080
+      VITE_API_URL: http://backend:8080
       CHOKIDAR_USEPOLLING: "true"
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
@@ -23,9 +85,14 @@ services:
       - ./frontend/src:/app/src
       - ./frontend/index.html:/app/index.html
       - /app/node_modules
+    depends_on:
+      - backend
     networks:
       - app-network
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  postgres_data_18:
