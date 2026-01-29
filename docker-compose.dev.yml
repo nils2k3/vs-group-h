@@ -1,0 +1,31 @@
+version: '3.8'
+
+# Frontend-only Docker Compose
+# Backend wird von Gruppe K bereitgestellt: https://github.com/vs-ws25-gruppe-k/vs-backend-group-k
+# Starte zuerst Gruppe K's Backend, dann dieses Frontend
+
+services:
+  # Vue Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: todo-frontend-dev
+    restart: unless-stopped
+    environment:
+      # Backend URL - muss auf Gruppe K's Backend zeigen
+      VITE_API_URL: http://localhost:8080
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      # Hot Reload für Development
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - /app/node_modules
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
